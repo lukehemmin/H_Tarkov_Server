@@ -41,7 +41,7 @@
 			"time_min": -1,
 			"time_max": -1,
 			"slots_min": 1,
-			"slots_max": 3,
+			"slots_max": 4,
 			"SpawnPoints": "BotZone",
 			"BotSide": "Savage",
 			"BotPreset": "normal",
@@ -135,7 +135,7 @@
 	"MaxBotPerZone": 4,
 	"OpenZones": "BotZone",
 	"OcculsionCullingEnabled": true,
-	"GlobalLootChanceModifier": 0.36,
+	"GlobalLootChanceModifier": 0.2,
 	"OldSpawn": true,
 	"NewSpawn": false,
 	"BotMax": 0,
@@ -155,7 +155,7 @@
 	"BotMarksman": 0,
 	"DisabledScavExits": "Cellars,Gate 0",
 	"AccessKeys": [],
-	"UnixDateTime": 1636381874,
+	"UnixDateTime": 1636379319,
 	"users_gather_seconds": 0,
 	"users_spawn_seconds_n": 120,
 	"users_spawn_seconds_n2": 180,
@@ -172,7 +172,8 @@
 		"DistToSleep": 150,
 		"DistToActivate": 140,
 		"MagnetPower": 15,
-		"DistToPersueAxemanCoef": 0.9
+		"DistToPersueAxemanCoef": 0.9,
+		"KhorovodChance": 0
 	},
 	"exits": [
 		{
@@ -2539,11 +2540,22 @@
 	"BossLocationSpawn": [
 		{
 			"BossName": "bossTagilla",
-			"BossChance": 10,
+			"BossChance": 19,
 			"BossZone": "BotZone",
 			"BossPlayer": false,
 			"BossDifficult": "normal",
 			"BossEscortType": "followerBully",
+			"BossEscortDifficult": "normal",
+			"BossEscortAmount": "0",
+			"Time": -1
+		},
+		{
+			"BossName": "gifter",
+			"BossChance": 10,
+			"BossZone": "BotZone",
+			"BossPlayer": false,
+			"BossDifficult": "normal",
+			"BossEscortType": "gifter",
 			"BossEscortDifficult": "normal",
 			"BossEscortAmount": "0",
 			"Time": -1

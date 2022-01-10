@@ -133,6 +133,7 @@ class RagfairController
     static getValidOffers(info, itemsToAdd, assorts, pmcProfile)
     {
         const offers = [];
+
         for (const offer of RagfairServer.offers)
         {
             if (RagfairController.isDisplayableOffer(info, itemsToAdd, assorts, offer, pmcProfile))
@@ -140,6 +141,7 @@ class RagfairController
                 offers.push(offer);
             }
         }
+
         return offers;
     }
 
@@ -153,6 +155,7 @@ class RagfairController
             if (RagfairController.isDisplayableOffer(info, itemsToAdd, assorts, offer, pmcProfile))
             {
                 const key = offer.items[0]._tpl;
+
                 if (!offersMap.has(key))
                 {
                     offersMap.set(key, []);
@@ -211,12 +214,10 @@ class RagfairController
 
         for (const traderID in DatabaseServer.tables.traders)
         {
-            if (!RagfairConfig.traders[traderID])
+            if (RagfairConfig.traders[traderID])
             {
-                continue;
+                result[traderID] = TraderController.getAssort(sessionID, traderID);
             }
-
-            result[traderID] = TraderController.getAssort(sessionID, traderID);
         }
 
         return result;
@@ -690,9 +691,8 @@ class RagfairController
         // Subtract flea market fee from stash
         if (RagfairConfig.sell.fees)
         {
-            const tax = RagfairController.calculateTax(info, offerValue, requirementsPriceInRub, itemStackCount);
-
-            Logger.info(`Tax Calculated to be: ${tax}`);
+            const tax = RagfairController.calculateTax(rootItem, pmcData, requirementsPriceInRub, itemStackCount, info.sellInOnePiece);
+            Logger.debug(`Tax Calculated to be: ${tax}`);
 
             const request = {
                 "tid": "ragfair",
@@ -724,45 +724,118 @@ class RagfairController
         return output;
     }
 
-    /*
-    * from: https://escapefromtarkov.gamepedia.com/Trading#Tax
-    *  The fee you'll have to pay to post an offer on Flea Market is calculated using the following formula:
-    *     VO × Ti × 4PO × Q + VR × Tr × 4PR × Q
-    *  Where:
-    *    VO is the total value of the offer, calculated by multiplying the base price of the item times the amount (base price × total item count / Q). The Base Price is a predetermined value for each item.
-    *    VR is the total value of the requirements, calculated by adding the product of each requirement base price by their amount.
-    *    PO is a modifier calculated as log10(VO / VR).
-    *    If VR is less than VO then PO is also raised to the power of 1.08.
-    *    PR is a modifier calculated as log10(VR / VO).
-    *    If VR is greater or equal to VO then PR is also raised to the power of 1.08.
-    *    Q is the "quantity" factor which is either 1 when "Require for all items in offer" is checked or the amount of items being offered otherwise.
-    *    Ti and Tr are tax constants currently set to 0.05.
-    *    30% of this commission will be deducted if the player has constructed the level 3 Intelligence Center.
-    *
-    *  After this round the number, if it ends with a decimal point.
-    */
-    static calculateTax(info, offerValue, requirementsValue, quantity)
+    // This method, along with calculateItemWorth, is trying to mirror the client-side code found in the method "CalculateTaxPrice".
+    // It's structured to resemble the client-side code as closely as possible - avoid making any big structure changes if it's not necessary.
+    static calculateTax(item, pmcData, requirementsValue, offerItemCount, sellInOnePiece)
     {
-        const Ti = 0.05;
-        const Tr = 0.05;
-        const VO = Math.round(offerValue);
-        const VR = Math.round(requirementsValue);
-        let PO = Math.log10(VO / VR);
-        let PR = Math.log10(VR / VO);
-        const Q = info.sellInOnePiece ? 1 : quantity;
-
-        if (VR < VO)
+        if (!requirementsValue)
         {
-            PO = Math.pow(PO, 1.08);
+            return 0;
         }
 
-        if (VR >= VO)
+        if (!offerItemCount)
         {
-            PR = Math.pow(PR, 1.08);
+            return 0;
         }
 
-        const fee = VO * Ti * Math.pow(4, PO) * Q + VR * Tr * Math.pow(4, PR) * Q;
-        return Math.round(fee);
+        const itemTemplate = ItemHelper.getItem(item._tpl)[1];
+        const itemWorth = this.calculateItemWorth(item, itemTemplate, offerItemCount, pmcData);
+        const requirementsPrice = requirementsValue * (sellInOnePiece ? 1 : offerItemCount);
+
+        const itemTaxMult = DatabaseServer.tables.globals.config.RagFair.communityItemTax / 100.0;
+        const requirementTaxMult = DatabaseServer.tables.globals.config.RagFair.communityRequirementTax / 100.0;
+
+        let itemPriceMult = Math.log10(itemWorth / requirementsPrice);
+        let requirementPriceMult = Math.log10(requirementsPrice / itemWorth);
+
+        if (requirementsPrice >= itemWorth)
+        {
+            requirementPriceMult = Math.pow(requirementPriceMult, 1.08);
+        }
+        else
+        {
+            itemPriceMult = Math.pow(itemPriceMult, 1.08);
+        }
+
+        itemPriceMult = Math.pow(4, itemPriceMult);
+        requirementPriceMult = Math.pow(4, requirementPriceMult);
+
+        const hideoutFleaTaxDiscountBonus = pmcData.Bonuses.find(b => b.type === "RagfairCommission");
+        const taxDiscountPercent = hideoutFleaTaxDiscountBonus ? Math.abs(hideoutFleaTaxDiscountBonus.value) : 0;
+
+        const tax = itemWorth * itemTaxMult * itemPriceMult + requirementsPrice * requirementTaxMult * requirementPriceMult;
+        const discountedTax = tax * (1.0 - taxDiscountPercent / 100.0);
+        const itemComissionMult = itemTemplate._props.RagFairCommissionModifier ? itemTemplate._props.RagFairCommissionModifier : 1;
+
+        return Math.round(discountedTax * itemComissionMult);
+    }
+
+    // This method is trying to replicate the item worth calculation method found in the client code.
+    // Any inefficiencies or style issues are intentional and should not be fixed, to preserve the client-side code mirroring.
+    static calculateItemWorth(item, itemTemplate, itemCount, pmcData, isRootItem = true)
+    {
+        let worth = RagfairServer.prices.dynamic[item._tpl];
+
+        // In client, all item slots are traversed and any items contained within have their values added
+        if (isRootItem) // Since we get a flat list of all child items, we only want to recurse from parent item
+        {
+            const itemChildren = ItemHelper.findAndReturnChildrenAsItems(pmcData.Inventory.items, item._id);
+            if (itemChildren.length > 1)
+            {
+                for (const child of itemChildren)
+                {
+                    if (child._id === item._id)
+                    {
+                        continue;
+                    }
+
+                    worth += RagfairController.calculateItemWorth(child, ItemHelper.getItem(child._tpl)[1], child.upd.StackObjectsCount, pmcData, false);
+                }
+            }
+        }
+
+        if ("Dogtag" in item.upd)
+        {
+            worth *= item.upd.Dogtag.Level;
+        }
+
+        if ("Key" in item.upd)
+        {
+            worth = worth / itemTemplate._props.MaximumNumberOfUsage * (itemTemplate._props.MaximumNumberOfUsage - item.upd.Key.NumberOfUsages);
+        }
+
+        if ("Resource" in item.upd)
+        {
+            worth = worth * 0.1 + worth * 0.9 / itemTemplate._props.MaxResource * item.upd.Resource.Value;
+        }
+
+        if ("SideEffect" in item.upd)
+        {
+            worth = worth * 0.1 + worth * 0.9 / itemTemplate._props.MaxResource * item.upd.SideEffect.Value;
+        }
+        else if (itemTemplate._props.MaxResource > 0 && itemTemplate._props.MaxDurability > 0)
+        {
+            // Handling edge-case where Cultist knife does not have "SideEffect" under "upd" while the knife hasn't been used
+            worth = worth * 0.1 + worth * 0.9 / itemTemplate._props.MaxResource * itemTemplate._props.MaxResource;
+        }
+
+        if ("MedKit" in item.upd)
+        {
+            worth = worth / itemTemplate._props.MaxHpResource * item.upd.MedKit.HpResource;
+        }
+
+        if ("FoodDrink" in item.upd)
+        {
+            worth = worth / itemTemplate._props.MaxResource * item.upd.FoodDrink.HpPercent;
+        }
+
+        if ("Repairable" in item.upd && itemTemplate._props.armorClass > 0)
+        {
+            const num2 = 0.01 * Math.pow(0.0, item.upd.Repairable.MaxDurability);
+            worth = worth * ((item.upd.Repairable.MaxDurability / itemTemplate._props.Durability) - num2) - Math.floor(itemTemplate._props.RepairCost * (item.upd.Repairable.MaxDurability - item.upd.Repairable.Durability));
+        }
+
+        return worth * itemCount;
     }
 
     /*
@@ -808,9 +881,9 @@ class RagfairController
         if (RagfairConfig.sell.fees)
         {
             const count = offers[index].sellInOnePiece ? 1 : offers[index].items.reduce((sum, item) => sum += item.upd.StackObjectsCount, 0);
-            const tax = RagfairController.calculateTax({ "sellInOnePiece": offers[index].sellInOnePiece }, offers[index].itemsCost / count, offers[index].requirementsCost, count) * 0.1 * info.renewalTime;
+            const tax = RagfairController.calculateTax(offers[index].items[0], ProfileController.getPmcProfile(sessionID), offers[index].requirementsCost, count, offers[index].sellInOnePiece);
 
-            Logger.info(`Tax Calculated to be: ${tax}`);
+            Logger.debug(`Tax Calculated to be: ${tax}`);
 
             const request = {
                 "tid": "ragfair",

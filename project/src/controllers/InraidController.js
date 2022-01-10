@@ -116,6 +116,22 @@ class InraidController
                 }
             }
 
+            //TODO Add car extract karma
+            /*
+            MatchCallbacks.endOfflineRaid should contain the of the endraid extraction in that version
+            ({"crc":0,"exitStatus":"Survived","exitName":"Gate 3","raidSeconds":81.428})
+            So actually MatchCallbacks.endOfflineRaid.exitName should get the name of the exist
+            List of the car extract in InraidConfig.carExtractlist
+
+            +0.25 first time, then it decrease (https://escapefromtarkov.fandom.com/wiki/Fence)
+            Whoever wanna do these maths is free to do it!
+            My environment isn't setup to work on it yet so :shrug:
+
+            Have fun! :grin:
+
+            */
+
+
             pmcData.TradersInfo[fenceID].standing = Math.min(Math.max(fenceStanding, -7), 6);
             TraderController.lvlUp(fenceID, sessionID);
             pmcData.TradersInfo[fenceID].loyaltyLevel = Math.max(pmcData.TradersInfo[fenceID].loyaltyLevel, 1);
@@ -183,6 +199,19 @@ class InraidController
         profileData.Encyclopedia = offraidData.profile.Encyclopedia;
         profileData.ConditionCounters = offraidData.profile.ConditionCounters;
         profileData.Quests = offraidData.profile.Quests;
+
+        // the client seems to keep the Quest data internally: offraidData returns dailies which are successful or failed due to timeout.
+        // even though we removed those from Quests upon completion and/or put them into the inactivesList
+        // we use the QuestDailyComplete list to remove all Quests which were already completed or moved to inactiveQuests
+        if (!offraidData.isPlayerScav)
+        {
+            for (let i = 0; i < profileData.Dailies.Complete.length; i++)
+            {
+                const qid = profileData.Dailies.Complete[i]._id;
+                profileData.Quests = profileData.Quests.filter(q => (q.qid !== qid));
+            }
+        }
+
         profileData.SurvivorClass = offraidData.profile.SurvivorClass;
 
         // add experience points

@@ -23,7 +23,7 @@ class BotGenerator
 {
     static inventory = {};
 
-    static generateInventory(templateInventory, equipmentChances, generation)
+    static generateInventory(templateInventory, equipmentChances, generation, botRole)
     {
         // Generate base inventory with no items
         BotGenerator.inventory = BotGenerator.generateInventoryBase();
@@ -43,11 +43,11 @@ class BotGenerator
             {
                 continue;
             }
-            BotGenerator.generateEquipment(equipmentSlot, templateInventory.equipment[equipmentSlot], templateInventory.mods, equipmentChances);
+            BotGenerator.generateEquipment(equipmentSlot, templateInventory.equipment[equipmentSlot], templateInventory.mods, equipmentChances, botRole);
         }
 
         // ArmorVest is generated afterwards to ensure that TacticalVest is always first, in case it is incompatible
-        BotGenerator.generateEquipment(EquipmentSlots.ArmorVest, templateInventory.equipment.ArmorVest, templateInventory.mods, equipmentChances);
+        BotGenerator.generateEquipment(EquipmentSlots.ArmorVest, templateInventory.equipment.ArmorVest, templateInventory.mods, equipmentChances, botRole);
 
         // Roll weapon spawns and generate a weapon for each roll that passed
         const shouldSpawnPrimary = RandomUtil.getIntEx(100) <= equipmentChances.equipment.FirstPrimaryWeapon;
@@ -75,7 +75,8 @@ class BotGenerator
                     templateInventory.equipment[weaponSpawn.slot],
                     templateInventory.mods,
                     equipmentChances.mods,
-                    generation.items.magazines);
+                    generation.items.magazines,
+                    botRole);
             }
         }
 
@@ -133,7 +134,7 @@ class BotGenerator
         };
     }
 
-    static generateEquipment(equipmentSlot, equipmentPool, modPool, spawnChances)
+    static generateEquipment(equipmentSlot, equipmentPool, modPool, spawnChances, botRole)
     {
         const spawnChance = [EquipmentSlots.Pockets, EquipmentSlots.SecuredContainer].includes(equipmentSlot)
             ? 100
@@ -169,7 +170,7 @@ class BotGenerator
                 "_tpl": tpl,
                 "parentId": BotGenerator.inventory.equipment,
                 "slotId": equipmentSlot,
-                ...BotGenerator.generateExtraPropertiesForItem(itemTemplate)
+                ...BotGenerator.generateExtraPropertiesForItem(itemTemplate, botRole)
             };
 
             if (Object.keys(modPool).includes(tpl))
@@ -184,7 +185,7 @@ class BotGenerator
         }
     }
 
-    static generateWeapon(equipmentSlot, weaponPool, modPool, modChances, magCounts)
+    static generateWeapon(equipmentSlot, weaponPool, modPool, modChances, magCounts, botRole)
     {
         const id = HashUtil.generate();
         const tpl = RandomUtil.getArrayValue(weaponPool);
@@ -202,7 +203,7 @@ class BotGenerator
             "_tpl": tpl,
             "parentId": BotGenerator.inventory.equipment,
             "slotId": equipmentSlot,
-            ...BotGenerator.generateExtraPropertiesForItem(itemTemplate)
+            ...BotGenerator.generateExtraPropertiesForItem(itemTemplate, botRole)
         }];
 
         if (Object.keys(modPool).includes(tpl))
@@ -234,7 +235,7 @@ class BotGenerator
                     ...parentItem, ...{
                         "parentId": BotGenerator.inventory.equipment,
                         "slotId": equipmentSlot,
-                        ...BotGenerator.generateExtraPropertiesForItem(itemTemplate)
+                        ...BotGenerator.generateExtraPropertiesForItem(itemTemplate, botRole)
                     }
                 };
                 weaponMods.push(...preset._items);
@@ -282,12 +283,6 @@ class BotGenerator
                 case "patron_in_weapon_000":
                 case "patron_in_weapon_001":
                     itemSlot = parentTemplate._props.Chambers.find(c => c._name.includes(modSlot));
-
-                    // Check for magazine in case its the revolver shotgun
-                    if (!itemSlot)
-                    {
-                        itemSlot = parentTemplate._props.Slots.find(c => c._name === "mod_magazine");
-                    }
                     break;
                 case "cartridges":
                     itemSlot = parentTemplate._props.Cartridges.find(c => c._name === modSlot);
@@ -356,6 +351,15 @@ class BotGenerator
                 continue;
             }
 
+            // TODO: check if weapon already has sight
+            // 'sight' 550aa4154bdc2dd8348b456b 2x parents down
+            const parentItem = DatabaseServer.tables.templates.items[modTemplate._parent];
+            if (modTemplate._parent === "550aa4154bdc2dd8348b456b" || parentItem._parent === "550aa4154bdc2dd8348b456b")
+            {
+                // todo, check if another sight is already on gun AND isnt a side-mounted sight
+                // if weapon has sight already, skip
+            }
+
             const modId = HashUtil.generate();
             items.push({
                 "_id": modId,
@@ -365,13 +369,83 @@ class BotGenerator
                 ...BotGenerator.generateExtraPropertiesForItem(modTemplate)
             });
 
-            if (Object.keys(modPool).includes(modTpl))
+            // I first thought we could use the recursive generateModsForItems as previously for cylinder magazines.
+            // However, the recurse doesnt go over the slots of the parent mod but over the modPool which is given by the bot config
+            // where we decided to keep cartridges instead of camoras. And since a CylinderMagazine only has one cartridge entry and
+            // this entry is not to be filled, we need a special handling for the CylinderMagazine
+            if (parentItem._name === "CylinderMagazine")
             {
-                BotGenerator.generateModsForItem(items, modPool, modId, modTemplate, modSpawnChances);
+                // we don't have child mods, we need to create the camoras for the magazines instead
+                BotGenerator.fillCamora(items, modPool, modId, modTemplate);
+            }
+            else
+            {
+                if (Object.keys(modPool).includes(modTpl))
+                {
+                    BotGenerator.generateModsForItem(items, modPool, modId, modTemplate, modSpawnChances);
+                }
             }
         }
 
         return items;
+    }
+
+    /**
+     * With the shotgun revolver (60db29ce99594040e04c4a27) 12.12 introduced CylinderMagazines.
+     * Those magazines (e.g. 60dc519adf4c47305f6d410d) have a "Cartridges" entry with a _max_count=0.
+     * Ammo is not put into the magazine directly but assigned to the magazine's slots: The "camora_xxx" slots.
+     * This function is a helper called by generateModsForItem for mods with parent type "CylinderMagazine"
+     *
+     * @param {object}      items               The items where the CylinderMagazine's camora are appended to
+     * @param {object}      modPool             modPool which should include available cartrigdes
+     * @param {string}      parentId            The CylinderMagazine's UID
+     * @param {object}      parentTemplate      The CylinderMagazine's template
+     */
+    static fillCamora(items, modPool, parentId, parentTemplate)
+    {
+        const itemModPool = modPool[parentTemplate._id];
+
+        let exhaustableModPool = null;
+        const modSlot = "cartridges";
+        if (modSlot in itemModPool)
+        {
+            exhaustableModPool = new ExhaustableArray(itemModPool[modSlot]);
+        }
+        else
+        {
+            Logger.error(`itemPool does not contain cartridges for a CylinderMagazine ${parentTemplate._id}. Filling of camoras cancelled.`);
+            return;
+        }
+
+        let modTpl;
+        let found = false;
+        while (exhaustableModPool.hasValues())
+        {
+            modTpl = exhaustableModPool.getRandomValue();
+            if (!BotGenerator.isItemIncompatibleWithCurrentItems(items, modTpl, modSlot))
+            {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found)
+        {
+            Logger.error(`No compatible ammo found for ${modSlot}. Filling of camoras cancelled.`);
+            return;
+        }
+
+        for (const slot of parentTemplate._props.Slots)
+        {
+            const modSlot = slot._name;
+            const modId = HashUtil.generate();
+            items.push({
+                "_id": modId,
+                "_tpl": modTpl,
+                "parentId": parentId,
+                "slotId": modSlot
+            });
+        }
     }
 
     static getModTplFromItemDb(modTpl, parentSlot, modSlot, items)
@@ -401,13 +475,32 @@ class BotGenerator
         return null;
     }
 
-    static generateExtraPropertiesForItem(itemTemplate)
+    static generateExtraPropertiesForItem(itemTemplate, botRole = null)
     {
         const properties = {};
 
         if (itemTemplate._props.MaxDurability)
         {
-            properties.Repairable = { "Durability": itemTemplate._props.MaxDurability };
+            if (itemTemplate._props.weapClass) // Is weapon
+            {
+                const maxDurability = DurabilityLimitsHelper.getRandomisedMaxWeaponDurability(itemTemplate, botRole);
+                const currentDurability = DurabilityLimitsHelper.getRandomisedWeaponDurability(itemTemplate, botRole, maxDurability);
+
+                properties.Repairable = {
+                    "Durability": currentDurability,
+                    "MaxDurability": maxDurability
+                };
+            }
+            else if (itemTemplate._props.armorClass) // Is armor
+            {
+                const maxDurability = itemTemplate._props.MaxDurability;
+                const currentDurability = DurabilityLimitsHelper.getRandomisedArmorDurability(itemTemplate, botRole, maxDurability);
+
+                properties.Repairable = {
+                    "Durability": currentDurability,
+                    "MaxDurability": maxDurability
+                };
+            }
         }
 
         if (itemTemplate._props.HasHinge)
@@ -422,7 +515,7 @@ class BotGenerator
 
         if (itemTemplate._props.weapFireType && itemTemplate._props.weapFireType.length)
         {
-            properties.FireMode = { "FireMode": itemTemplate._props.weapFireType[0] };
+            properties.FireMode = { "FireMode": RandomUtil.getArrayValue(itemTemplate._props.weapFireType) };
         }
 
         if (itemTemplate._props.MaxHpResource)
@@ -523,9 +616,20 @@ class BotGenerator
 
         if (magTemplate._props.ReloadMagType === "InternalMagazine")
         {
+            const parentItem = DatabaseServer.tables.templates.items[magTemplate._parent];
+            let chamberCount = 0;
+            if (parentItem._name === "CylinderMagazine")
+            {
+                // if we have a CylinderMagazine we count the number of camoras as the _max_count of the magazine is 0
+                chamberCount = magTemplate._props.Slots.length;
+            }
+            else
+            {
+                chamberCount = magTemplate._props.Cartridges[0]._max_count;
+            }
             /* Get the amount of bullets that would fit in the internal magazine
              * and multiply by how many magazines were supposed to be created */
-            const bulletCount = magTemplate._props.Cartridges[0]._max_count * count;
+            const bulletCount = chamberCount * count;
 
             BotGenerator.addBullets(ammoTpl, bulletCount);
         }
@@ -637,7 +741,7 @@ class BotGenerator
     static getCompatibleAmmo(weaponMods, weaponTemplate)
     {
         let ammoTpl = "";
-        let ammoToUse = weaponMods.find(mod => mod.slotId === "patron_in_weapon");
+        let ammoToUse = weaponMods.find(mod => mod.slotId.startsWith("patron_in_weapon") || mod.slotId.startsWith("camora"));
         if (!ammoToUse)
         {
             // No bullet found in chamber, search for ammo in magazines instead
@@ -678,24 +782,43 @@ class BotGenerator
             return;
         }
 
+        const parentItem = DatabaseServer.tables.templates.items[modTemplate._parent];
         const stackSize = modTemplate._props.Cartridges[0]._max_count;
-        const cartridges = weaponMods.find(m => m.parentId === magazine._id && m.slotId === "cartridges");
 
-        if (!cartridges)
+        // the revolver shotgun uses a magazine, but the magazine does not have cartidges but revolver chambers ("camora_xxx")
+        // if the exchange of the camora ammo in the else scope is not necessary we could also just check for stackSize > 0 here
+        // and remove the else
+        if (parentItem._name !== "CylinderMagazine")
         {
-            Logger.warning(`Magazine with tpl ${magazine._tpl} had no ammo`);
-            weaponMods.push({
-                "_id": HashUtil.generate(),
-                "_tpl": ammoTpl,
-                "parentId": magazine._id,
-                "slotId": "cartridges",
-                "upd": { "StackObjectsCount": stackSize }
-            });
+            const cartridges = weaponMods.find(m => m.parentId === magazine._id && m.slotId === "cartridges");
+
+            if (!cartridges)
+            {
+                Logger.warning(`Magazine with tpl ${magazine._tpl} had no ammo`);
+                weaponMods.push({
+                    "_id": HashUtil.generate(),
+                    "_tpl": ammoTpl,
+                    "parentId": magazine._id,
+                    "slotId": "cartridges",
+                    "upd": { "StackObjectsCount": stackSize }
+                });
+            }
+            else
+            {
+                cartridges._tpl = ammoTpl;
+                cartridges.upd = { "StackObjectsCount": stackSize };
+            }
         }
         else
         {
-            cartridges._tpl = ammoTpl;
-            cartridges.upd = { "StackObjectsCount": stackSize };
+            // for CylinderMagazine we exchange the ammo in the "camoras".
+            // This might not be necessary since we already filled the camoras with a random whitelisted and compatible ammo type,
+            // but I'm not sure whether this is also used elsewhere
+            const camoras = weaponMods.filter(m => m.parentId === magazine._id && m.slotId.startsWith("camora"));
+            for (const camora of camoras)
+            {
+                camora._tpl = ammoTpl;
+            }
         }
     }
 

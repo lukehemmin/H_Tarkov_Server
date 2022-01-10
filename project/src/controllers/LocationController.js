@@ -61,7 +61,7 @@ class LocationController
 
             ids[data.Id] = true;
 
-            LocationGenerator.generateContainerLoot(data.Items);
+            LocationGenerator.generateContainerLoot(location.base.Id, data.Items);
             output.Loot.push(data);
             count++;
         }

@@ -1,5 +1,7 @@
 "use strict";
 
+const { pmc } = require("../configs/BotConfig.js");
+
 require("../Lib.js");
 
 class ProfileController
@@ -78,6 +80,11 @@ class ProfileController
         pmcData.Customization.Head = info.headId;
         pmcData.Health.UpdateTime = TimeUtil.getTimestamp();
         pmcData.Quests = [];
+        pmcData.Dailies = {};
+        pmcData.Dailies.Available = [];
+        pmcData.Dailies.Complete = [];
+        pmcData.Dailies.TimeCreated = 0;
+        pmcData.CarExtractCounts = {};
 
         // change item id's to be unique
         pmcData.Inventory.items = ItemHelper.replaceIDs(pmcData, pmcData.Inventory.items, null, pmcData.Inventory.fastPanel);

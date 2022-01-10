@@ -30,6 +30,12 @@ const areaTypes = {
 // Production recipe made from these areas
 const BITCOIN_FARM = "5d5c205bd582a50d042a3c0e";
 const WATER_COLLECTOR = "5d5589c1f934db045e6c5492";
+// Name of Skill
+const SKILL_NAME_HIDEOUT = "HideoutManagement";
+const SKILL_NAME_CRAFITING = "Crafting";
+const HOUR_FOR_SKILL_CRAFTING = 28800;
+const NAME_BACKENDCOUNTERS_CRAFTING = "CounterHoursCrafting";
+
 
 class HideoutController
 {
@@ -130,6 +136,10 @@ class HideoutController
                 HideoutController.applyPlayerUpgradesBonuses(pmcData, bonus);
             }
         }
+
+        // Add Skill Points Per Area Upgrade
+        //TODO using a variable for value of increment
+        PlayerController.incrementSkillLevel(pmcData, output.profileChanges[sessionID], SKILL_NAME_HIDEOUT, 80);
 
         return output;
     }
@@ -430,6 +440,18 @@ class HideoutController
     {
         const output = ItemEventRouter.getOutput(sessionID);
 
+        //variables for managemnet of skill
+        let craftingExpAmount = 0;
+
+        // ? move the logic of BackendCounters in new method?
+        let counterHoursCrafting = pmcData.BackendCounters[NAME_BACKENDCOUNTERS_CRAFTING];
+        if (!counterHoursCrafting)
+        {
+            pmcData.BackendCounters[NAME_BACKENDCOUNTERS_CRAFTING] = { "id": NAME_BACKENDCOUNTERS_CRAFTING, "value": 0 };
+            counterHoursCrafting = pmcData.BackendCounters[NAME_BACKENDCOUNTERS_CRAFTING];
+        }
+        let hoursCrafting = counterHoursCrafting.value;
+
         if (body.recipeId === BITCOIN_FARM)
         {
             return HideoutController.getBTC(pmcData, body, sessionID);
@@ -462,9 +484,42 @@ class HideoutController
                 return HttpResponse.appendErrorToOutput(output);
             }
 
-            // delete the production in profile Hideout.Production if addItem passes validation
+            // check if the recipe is the same as the last one
+            const area = pmcData.Hideout.Areas[recipe.areaType];
+
+            if (area && body.recipeId !== area.lastRecipe)
+            {
+                // 1 point per craft upon the end of production for alternating between 2 different crafting recipes in the same module
+                craftingExpAmount += 10;
+            }
+
+            // 1 point per 8 hours of crafting
+            hoursCrafting += recipe.productionTime;
+            if ((hoursCrafting / HOUR_FOR_SKILL_CRAFTING) >= 1)
+            {
+                const multiplierCrafting = Math.floor((hoursCrafting / HOUR_FOR_SKILL_CRAFTING));
+                craftingExpAmount += (1 * multiplierCrafting);
+                hoursCrafting -= (HOUR_FOR_SKILL_CRAFTING * multiplierCrafting);
+            }
+
+            // increment
+            // if addItem passes validation:
+            //  - increment skill point for crafting
+            //  - delete the production in profile Hideout.Production
             const callback = () =>
             {
+                // manager Hideout skill
+                // ? use a configuration variable for the value?
+                PlayerController.incrementSkillLevel(pmcData, output.profileChanges[sessionID], SKILL_NAME_HIDEOUT, 4);
+                //manager Crafting skill
+                if (craftingExpAmount > 0)
+                {
+                    PlayerController.incrementSkillLevel(pmcData, output.profileChanges[sessionID], SKILL_NAME_CRAFITING, craftingExpAmount);
+                }
+                area.lastRecipe = body.recipeId;
+                counterHoursCrafting.value = hoursCrafting;
+
+                //delete production
                 delete pmcData.Hideout.Production[kvp[0]];
             };
 
@@ -597,7 +652,7 @@ class HideoutController
 
                     if (isGeneratorOn)
                     {
-                        area = HideoutController.updateFuel(area, solarPowerLevel);
+                        area = HideoutController.updateFuel(area, solarPowerLevel, pmcData);
                     }
                     break;
 
@@ -607,7 +662,7 @@ class HideoutController
                         const prod = pmcData.Hideout.Production[WATER_COLLECTOR];
                         if (prod)
                         {
-                            area = HideoutController.updateWaterFilters(area, prod, isGeneratorOn);
+                            area = HideoutController.updateWaterFilters(area, prod, isGeneratorOn, pmcData);
                         }
                         else
                         {
@@ -631,7 +686,7 @@ class HideoutController
                 case areaTypes.AIR_FILTERING:
                     if (isGeneratorOn)
                     {
-                        area = HideoutController.updateAirFilters(area);
+                        area = HideoutController.updateAirFilters(area, pmcData);
                     }
                     break;
 
@@ -702,12 +757,14 @@ class HideoutController
         }
     }
 
-    static updateFuel(generatorArea, solarPower)
+    static updateFuel(generatorArea, solarPower, pmcData)
     {
         // 1 resource last 14 min 27 sec, 1/14.45/60 = 0.00115
-        let fuelDrainRate = 0.00115 * HideoutConfig.runInterval;
+        // 10-10-2021 From wiki, 1 resource last 12 minutes 38 seconds, 1/12.63333/60 = 0.00131
+        let fuelDrainRate = 0.00131 * HideoutConfig.runInterval;
         fuelDrainRate = solarPower === 1 ? fuelDrainRate / 2 : fuelDrainRate;
         let hasAnyFuelRemaining = false;
+        let pointsConsumed = 0;
 
         for (let i = 0; i < generatorArea.slots.length; i++)
         {
@@ -730,19 +787,31 @@ class HideoutController
                     resourceValue = generatorArea.slots[i].item[0]._tpl === fuelItem
                         ? resourceValue = 60 - fuelDrainRate
                         : resourceValue = 100 - fuelDrainRate;
+                    pointsConsumed = fuelDrainRate;
                 }
                 else
                 {
+                    pointsConsumed = (generatorArea.slots[i].item[0].upd.Resource.UnitsConsumed || 0) + fuelDrainRate;
                     resourceValue -= fuelDrainRate;
                 }
+
                 resourceValue = Math.round(resourceValue * 10000) / 10000;
+                pointsConsumed = Math.round(pointsConsumed * 10000) / 10000;
+
+                //check unit consumed for increment skill point
+                if (pmcData && Math.floor(pointsConsumed / 10) >= 1)
+                {
+                    PlayerController.incrementSkillLevel(pmcData, null, SKILL_NAME_HIDEOUT, 1);
+                    pointsConsumed -= 10;
+                }
 
                 if (resourceValue > 0)
                 {
                     generatorArea.slots[i].item[0].upd = {
                         "StackObjectsCount": 1,
                         "Resource": {
-                            "Value": resourceValue
+                            "Value": resourceValue,
+                            "UnitsConsumed": pointsConsumed
                         }
                     };
                     console.log(`Generator: ${resourceValue} fuel left on tank slot ${i + 1}`);
@@ -754,9 +823,13 @@ class HideoutController
                     generatorArea.slots[i].item[0].upd = {
                         "StackObjectsCount": 1,
                         "Resource": {
-                            "Value": 0
+                            "Value": 0,
+                            "UnitsConsumed": 0,
                         }
                     };
+
+                    // Update remaining resources to be subtracted
+                    fuelDrainRate = Math.abs(resourceValue);
                 }
             }
         }
@@ -769,22 +842,24 @@ class HideoutController
         return generatorArea;
     }
 
-    static updateWaterFilters(waterFilterArea, pwProd, isGeneratorOn)
+    static updateWaterFilters(waterFilterArea, pwProd, isGeneratorOn, pmcData)
     {
         let time_elapsed = (TimeUtil.getTimestamp() - pwProd.StartTimestamp) - pwProd.Progress;
         // 100 resources last 8 hrs 20 min, 100/8.33/60/60 = 0.00333
         let filterDrainRate = 0.00333;
         let production_time = 0;
+        let pointsConsumed = 0;
 
-        const recipes = DatabaseServer.tables.hideout.production;
-        for (const prod of recipes)
+        const recipe = DatabaseServer.tables.hideout.production.find(prod => prod._id === WATER_COLLECTOR);
+        production_time = (recipe.productionTime || 0);
+
+        if (!isGeneratorOn)
         {
-            if (prod._id === WATER_COLLECTOR)
-            {
-                production_time = prod.productionTime;
-                break;
-            }
+            time_elapsed = Math.floor(time_elapsed * 0.2);
         }
+        filterDrainRate = (time_elapsed > production_time)
+            ? filterDrainRate *= (production_time - pwProd.Progress)
+            : filterDrainRate *= time_elapsed;
 
         if (pwProd.Progress < production_time)
         {
@@ -796,33 +871,36 @@ class HideoutController
                 }
                 else
                 {
-                    if (!isGeneratorOn)
-                    {
-                        time_elapsed = Math.floor(time_elapsed * 0.2);
-                    }
-                    filterDrainRate = (time_elapsed > production_time)
-                        ? filterDrainRate *= (production_time - pwProd.Progress)
-                        : filterDrainRate *= time_elapsed;
-
                     let resourceValue = (waterFilterArea.slots[i].item[0].upd && waterFilterArea.slots[i].item[0].upd.Resource)
                         ? waterFilterArea.slots[i].item[0].upd.Resource.Value
                         : null;
                     if (!resourceValue)
                     {
                         resourceValue = 100 - filterDrainRate;
+                        pointsConsumed = filterDrainRate;
                     }
                     else
                     {
+                        pointsConsumed = (waterFilterArea.slots[i].item[0].upd.Resource.UnitsConsumed || 0) + fuelDrainRate;
                         resourceValue -= filterDrainRate;
                     }
                     resourceValue = Math.round(resourceValue * 10000) / 10000;
+                    pointsConsumed = Math.round(pointsConsumed * 10000) / 10000;
+
+                    //check unit consumed for increment skill point
+                    if (pmcData && Math.floor(pointsConsumed / 10) >= 1)
+                    {
+                        PlayerController.incrementSkillLevel(pmcData, null, SKILL_NAME_HIDEOUT, 1);
+                        pointsConsumed -= 10;
+                    }
 
                     if (resourceValue > 0)
                     {
                         waterFilterArea.slots[i].item[0].upd = {
                             "StackObjectsCount": 1,
                             "Resource": {
-                                "Value": resourceValue
+                                "Value": resourceValue,
+                                "UnitsConsumed": pointsConsumed
                             }
                         };
                         console.log(`Water filter: ${resourceValue} filter left on slot ${i + 1}`);
@@ -831,6 +909,8 @@ class HideoutController
                     else
                     {
                         waterFilterArea.slots[i].item = null;
+                        // Update remaining resources to be subtracted
+                        filterDrainRate = Math.abs(resourceValue);
                     }
                 }
             }
@@ -839,10 +919,16 @@ class HideoutController
         return waterFilterArea;
     }
 
-    static updateAirFilters(airFilterArea)
+    static updateAirFilters(airFilterArea, pmcData)
     {
         // 300 resources last 20 hrs, 300/20/60/60 = 0.00416
-        const filterDrainRate = 0.00416 * HideoutConfig.runInterval;
+        /* 10-10-2021 from WIKI (https://escapefromtarkov.fandom.com/wiki/FP-100_filter_absorber)
+            Lasts for 17 hours 38 minutes and 49 seconds (23 hours 31 minutes and 45 seconds with elite hideout management skill),
+            300/17.64694/60/60 = 0.004722
+        */
+        //TODO inmplement elite hideout management skill
+        let filterDrainRate = 0.004722 * HideoutConfig.runInterval;
+        let pointsConsumed = 0;
 
         for (let i = 0; i < airFilterArea.slots.length; i++)
         {
@@ -858,19 +944,30 @@ class HideoutController
                 if (!resourceValue)
                 {
                     resourceValue = 300 - filterDrainRate;
+                    pointsConsumed = filterDrainRate;
                 }
                 else
                 {
+                    pointsConsumed = (airFilterArea.slots[i].item[0].upd.Resource.UnitsConsumed || 0) + fuelDrainRate;
                     resourceValue -= filterDrainRate;
                 }
                 resourceValue = Math.round(resourceValue * 10000) / 10000;
+                pointsConsumed = Math.round(pointsConsumed * 10000) / 10000;
+
+                //check unit consumed for increment skill point
+                if (pmcData && Math.floor(pointsConsumed / 10) >= 1)
+                {
+                    PlayerController.incrementSkillLevel(pmcData, null, SKILL_NAME_HIDEOUT, 1);
+                    pointsConsumed -= 10;
+                }
 
                 if (resourceValue > 0)
                 {
                     airFilterArea.slots[i].item[0].upd = {
                         "StackObjectsCount": 1,
                         "Resource": {
-                            "Value": resourceValue
+                            "Value": resourceValue,
+                            "UnitsConsumed": pointsConsumed
                         }
                     };
                     console.log(`Air filter: ${resourceValue} filter left on slot ${i + 1}`);
@@ -879,6 +976,8 @@ class HideoutController
                 else
                 {
                     airFilterArea.slots[i].item = null;
+                    // Update remaining resources to be subtracted
+                    filterDrainRate = Math.abs(resourceValue);
                 }
             }
         }

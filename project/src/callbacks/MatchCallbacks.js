@@ -99,6 +99,7 @@ class MatchCallbacks
 
     static endOfflineRaid(url, info, sessionID)
     {
+        MatchController.endOfflineRaid(info, sessionID);
         return HttpResponse.nullResponse();
     }
 }

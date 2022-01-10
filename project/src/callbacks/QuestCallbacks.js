@@ -29,10 +29,9 @@ class QuestCallbacks
         return HttpResponse.getBody(QuestController.getClientQuests(sessionID));
     }
 
-    static activityPeriods(sessionID)
+    static activityPeriods(url, info, sessionID)
     {
-        return HttpResponse.emptyArrayResponse();
-        //return HttpResponse.getBody(QuestController.GetClientDailyQuests(sessionID));
+        return HttpResponse.getBody(QuestDailyController.GetClientDailyQuests(info, sessionID));
     }
 }
 

@@ -1,5 +1,7 @@
 "use strict";
 
+const { NOOP } = require("ws/lib/constants");
+
 require("../Lib.js");
 
 class QuestController
@@ -80,68 +82,6 @@ class QuestController
             }
         }
         return quests;
-    }
-
-    static GetClientDailyQuests(sessionID)
-    {
-        //TODO:
-        // level 45+
-        // add reward randomistion:
-        // 20,000 to 80,000 exp
-        // 100,000 to 250,000 roubles
-        // 700 to 1750 euros if from peacekeeper
-        // 1 to 4 items
-        //
-        // level 21-45
-        // add reward randomistion:
-        // up to 20,000 exp
-        // up to 100,000 roubles
-        // up to 700 if from peacekeeper
-        // 1 to 4 items
-        //
-        // level 5-20
-        // add reward randomistion:
-        // up to 2000 exp
-        // up to 10,000 roubles
-        // up to 70 if from peacekeeper
-        // 1 to 2 items
-        //
-        // quest types:
-        // exit location
-        // extract between 1 and 5 times from location
-        //
-        // elimination PMC
-        // kill between 2-15 PMCs
-        // from a distance between 20-50 meters
-        // kill via damage from a particular body part
-        //
-        // elimination scav
-        // kill between 2-15 scavs
-        // from a distance between 20-50 meters
-        // kill via damage from a particular body part
-        //
-        // boss elimination
-        // any distance OR from a distance of more than 80
-        //
-        // find and transfer
-        // find and handover a random number of items
-        // items are random
-
-
-        const dailyQuests = DatabaseServer.tables.templates.dailyQuests;
-
-        const time = Math.round(new Date().getTime() / 1000);
-        const time24HoursTomorrow = time + (24 * 3600);
-        var returnData = [];
-        returnData.push({
-            id: HashUtil.generate(),
-            name: "Daily",
-            endTime: time24HoursTomorrow,
-            activeQuests: dailyQuests.activeQuests,
-            inactiveQuests: []
-        });
-
-        return returnData;
     }
 
     static getFindItemIdForQuestItem(itemTpl)
@@ -264,7 +204,7 @@ class QuestController
         }
 
         // give reward
-        let quest = QuestController.getQuestFromDb(body.qid);
+        let quest = QuestController.getQuestFromDb(body.qid, pmcData);
 
         if (intelCenterBonus > 0)
         {
@@ -314,7 +254,7 @@ class QuestController
 
         // Create a dialog message for starting the quest.
         // Note that for starting quests, the correct locale field is "description", not "startedMessageText".
-        const quest = QuestController.getQuestFromDb(acceptedQuest.qid);
+        const quest = QuestController.getQuestFromDb(acceptedQuest.qid, pmcData);
         let startedMessageId = QuestController.getQuestLocaleIdFromDb(quest.startedMessageText);
         const questRewards = QuestController.getQuestRewardItems(quest, state);
 
@@ -343,7 +283,7 @@ class QuestController
         const quest = pmcData.Quests.find(q => q.qid === acceptedQuest.qid);
         QuestController.addQuestToPMCData(pmcData, quest, state, acceptedQuest);
 
-        const dailyQuestDb = DatabaseServer.tables.templates.dailyQuests.activeQuests.find(x => x._id === acceptedQuest.qid);
+        const dailyQuestDb = pmcData.Dailies.Available.find(x => x._id === acceptedQuest.qid);
         const locale = DatabaseServer.tables.locales.global["en"];
         let questStartedMessageKey = locale.repeatableQuest[dailyQuestDb.startedMessageText];
         const questStartedMessageText = locale.mail[questStartedMessageKey];
@@ -423,7 +363,7 @@ class QuestController
         }
 
         // Create a dialog message for completing the quest.
-        const quest = QuestController.getQuestFromDb(body.qid);
+        const quest = QuestController.getQuestFromDb(body.qid, pmcData);
         const successMessageId = QuestController.getQuestLocaleIdFromDb(quest.successMessageText);
         const messageContent = {
             "templateId": successMessageId,
@@ -438,6 +378,20 @@ class QuestController
         QuestHelper.dumpQuests(completeQuestResponse.profileChanges[sessionID].quests);
         Object.assign(completeQuestResponse.profileChanges[sessionID].traderRelations, pmcData.TradersInfo);
 
+        // check if it's a daily quest. If so remove from Quests and Dailies.Available list (otherwise we'll clutter the Quests list indefinitely)
+        // move them to Complete list (we need the complete list to remove failed or successful quests from the Quests list the client returns)
+        const dailyQuest = pmcData.Dailies.Available.find(q => q._id === body.qid);
+        if (dailyQuest)
+        {
+            pmcData.ConditionCounters.Counters = pmcData.ConditionCounters.Counters.filter(c => c.qid !== body.qid);
+            pmcData.Quests = pmcData.Quests.filter(q => q.qid !== body.qid);
+            pmcData.Dailies.Available = pmcData.Dailies.Available.filter(q => q._id !== body.qid);
+            pmcData.Dailies.Complete.push(dailyQuest);
+        }
+
+        // make sure we level up
+        pmcData.Info.Level = PlayerController.calculateLevel(pmcData);
+
         return completeQuestResponse;
     }
 
@@ -446,7 +400,7 @@ class QuestController
         const questRewards = QuestController.applyQuestReward(pmcData, body, "Fail", sessionID);
 
         // Create a dialog message for completing the quest.
-        const quest = QuestController.getQuestFromDb(body.qid);
+        const quest = QuestController.getQuestFromDb(body.qid, pmcData);
         const failMessageId = QuestController.getQuestLocaleIdFromDb(quest.failMessageText);
         const messageContent = {
             "templateId": failMessageId,
@@ -462,13 +416,14 @@ class QuestController
         return failedQuestResponse;
     }
 
-    static getQuestFromDb(questId)
+    static getQuestFromDb(questId, pmcData)
     {
         let quest = DatabaseServer.tables.templates.quests[questId];
         if (!quest)
         {
-            // Check for id in daily quests
-            quest = DatabaseServer.tables.templates.dailyQuests.activeQuests.find(x => x._id === questId);
+            // Check for id in daily quests; we need to look at the currently active, since we
+            // randomly generate the dailies
+            quest = pmcData.Dailies.Available.find(x => x._id === questId);
         }
 
         return quest;
@@ -496,7 +451,7 @@ class QuestController
 
     static handoverQuest(pmcData, body, sessionID)
     {
-        const quest = QuestController.getQuestFromDb(body.qid);
+        const quest = QuestController.getQuestFromDb(body.qid, pmcData);
         const types = ["HandoverItem", "WeaponAssembly"];
         const output = ItemEventRouter.getOutput(sessionID);
         let handoverMode = true;

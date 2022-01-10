@@ -135,7 +135,7 @@
 	"MaxBotPerZone": 0,
 	"OpenZones": "",
 	"OcculsionCullingEnabled": true,
-	"GlobalLootChanceModifier": 0.6,
+	"GlobalLootChanceModifier": 0.4,
 	"OldSpawn": true,
 	"NewSpawn": false,
 	"BotMax": 0,
@@ -155,7 +155,7 @@
 	"BotMarksman": 0,
 	"DisabledScavExits": "Cellars,Gate 0",
 	"AccessKeys": [],
-	"UnixDateTime": 1636379376,
+	"UnixDateTime": 1636381874,
 	"users_gather_seconds": 0,
 	"users_spawn_seconds_n": 120,
 	"users_spawn_seconds_n2": 180,
@@ -172,7 +172,8 @@
 		"MagnetPower": 15,
 		"DistToSleep": 120,
 		"DistToActivate": 100,
-		"DistToPersueAxemanCoef": 0.9
+		"DistToPersueAxemanCoef": 0.9,
+		"KhorovodChance": 0
 	},
 	"exits": [
 		{
@@ -2534,7 +2535,7 @@
 	"BossLocationSpawn": [
 		{
 			"BossName": "bossTagilla",
-			"BossChance": 14,
+			"BossChance": 23,
 			"BossZone": "BotZone",
 			"BossPlayer": false,
 			"BossDifficult": "normal",
@@ -2552,6 +2553,17 @@
 			"BossEscortType": "sectantWarrior",
 			"BossEscortDifficult": "normal",
 			"BossEscortAmount": "2",
+			"Time": -1
+		},
+		{
+			"BossName": "gifter",
+			"BossChance": 10,
+			"BossZone": "BotZone",
+			"BossPlayer": false,
+			"BossDifficult": "normal",
+			"BossEscortType": "gifter",
+			"BossEscortDifficult": "normal",
+			"BossEscortAmount": "0",
 			"Time": -1
 		}
 	],

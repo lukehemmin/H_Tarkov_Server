@@ -66,7 +66,7 @@ class Watermark
             AkiConfig.akiVersion = `${AkiConfig.akiVersion}-BLEEDINGEDGE`;
         }
 
-        Watermark.versionLabel = `${AkiConfig.projectName} ${AkiConfig.akiVersion}`;
+        Watermark.versionLabel = `0.12.12.11.16432`;
         Watermark.text = [Watermark.versionLabel];
         Watermark.text = [...Watermark.text, ...description];
 

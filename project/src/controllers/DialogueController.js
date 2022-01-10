@@ -110,6 +110,17 @@ class DialogueController
                 }
 
                 items.data.push(reward);
+
+                const itemTemplate = DatabaseServer.tables.templates.items[reward._tpl];
+                if ("StackSlots" in itemTemplate._props)
+                {
+                    const stackSlotItems = ItemHelper.generateStackSlotItems(itemTemplate, reward._id);
+                    for (const stackSlotItem of stackSlotItems)
+                    {
+                        items.data.push(stackSlotItem);
+                    }
+                }
+
             }
 
             dialogue.attachmentsNew += 1;

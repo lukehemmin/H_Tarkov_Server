@@ -24,7 +24,7 @@ class TradeController
                 throw "Transaction failed";
             }
 
-            Logger.success(`Bought item: ${body.item_id}`);
+            Logger.debug(`Bought item: ${body.item_id}`);
         };
 
         return InventoryController.addItem(pmcData, newReq, output, sessionID, callback, foundInRaid, upd);
@@ -102,7 +102,7 @@ class TradeController
         for (const offer of body.offers)
         {
             const data = RagfairServer.getOffer(offer.id);
-            console.log(offer);
+            Logger.debug(JSON.stringify(offer, null, 2));
 
             pmcData = ProfileController.getPmcProfile(sessionID);
             body = {

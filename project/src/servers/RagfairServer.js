@@ -9,17 +9,18 @@ class RagfairServer
     static offers = [];
     static categories = {};
     static prices = {
-        "trader": {},
+        "static": {},
         "dynamic": {}
     };
     static linkedItemsCache = {};
     static requiredItemsCache = {};
-    static dynamicOfferCount = 0;
 
     static load()
     {
         RagfairServer.buildLinkedItemTable();
-        RagfairServer.getItemPrices();
+        RagfairServer.generateStaticPrices();
+        RagfairServer.generateDynamicPrices();
+        RagfairServer.generateDynamicOffers();
         RagfairServer.addTraders();
         RagfairServer.update();
     }
@@ -224,16 +225,10 @@ class RagfairServer
             }
         }
 
-        // generate dynamic offers
-        if (RagfairConfig.dynamic.enabled && RagfairServer.dynamicOfferCount === 0)
-        {
-            // offer count below threshold
-            RagfairServer.generateDynamicOffers();
-        }
-
         // Regen expired offers when over threshold count
-        if (RagfairServer.expiredDynamicOffers.length >= RagfairConfig.dynamic.expiredOfferCountRegenThreshold)
+        if (RagfairServer.expiredDynamicOffers.length >= RagfairConfig.dynamic.expiredOfferThreshold)
         {
+            RagfairServer.generateDynamicPrices();
             RagfairServer.generateDynamicOffers(RagfairServer.expiredDynamicOffers);
         }
 
@@ -290,7 +285,6 @@ class RagfairServer
         let assortItems;
         if (expiredOffers)
         {
-            Logger.debug(`Regenerating ${RagfairServer.expiredDynamicOffers.length} expired dynamic offers`);
             assortItems = expiredOffers;
         }
         else
@@ -305,6 +299,13 @@ class RagfairServer
         {
             // get base item and stack
             const item = assortItems[itemIndex];
+            const itemDetails = ItemHelper.getItem(item._tpl);
+
+            // Skip non-items
+            if (!itemDetails[0])
+            {
+                continue;
+            }
 
             // Skip item if found in blacklist
             if (RagfairServer.isItemInDynamicBlacklist(item._tpl))
@@ -313,21 +314,29 @@ class RagfairServer
             }
 
             // perform quest item check if feature flag enabled
-            if (config.blacklistQuestItems && ItemHelper.isQuestItem(item._tpl))
+            if (config.blacklist.enableQuestList && ItemHelper.isQuestItem(item._tpl))
+            {
+                continue;
+            }
+
+            // Dont list items that bsg deem as unsellable on flea
+            if (config.blacklist.enableBsgList && !itemDetails[1]._props.CanSellOnRagfair)
             {
                 continue;
             }
 
             const isPreset = PresetController.isPreset(item._id);
-            const items = (isPreset) ? RagfairServer.getPresetItems(item) : [...[item], ...ItemHelper.findAndReturnChildrenByAssort(item._id, assort.items)];
+            let items = (isPreset) ? RagfairServer.getPresetItems(item) : [...[item], ...ItemHelper.findAndReturnChildrenByAssort(item._id, assort.items)];
 
             // Get number of offers to show for item and add to ragfairServer
-            const itemCount = (expiredOffers) ? 1 : Math.round(RandomUtil.getInt(config.perOfferItemCount.min, config.perOfferItemCount.max));
+            const itemCount = (expiredOffers) ? 1 : Math.round(RandomUtil.getInt(config.offerItemCount.min, config.offerItemCount.max));
             for (let index = 0; index < itemCount; index++)
             {
                 items[0].upd.StackObjectsCount = RagfairServer.CalculateDynamicStackCount(items[0]._tpl, isPreset);
 
                 const userID = HashUtil.generate();
+                // get properties
+                items = RagfairServer.getItemCondition(userID, items);
                 const barterScheme = RagfairServer.getOfferRequirements(items);
                 const price = RagfairServer.getBarterPrice(barterScheme);
 
@@ -346,7 +355,8 @@ class RagfairServer
                 expiredOffers.splice(itemIndex, 1);
             }
         }
-        RagfairServer.dynamicOfferCount = assortItems.length;
+
+        Logger.debug(`generated ${assortItems.length} dynamic offers`);
     }
 
     static CalculateDynamicStackCount(tplId, isWeaponPreset)
@@ -361,7 +371,7 @@ class RagfairServer
         }
 
         // Item Types to return one of
-        if (isWeaponPreset || ItemHelper.doesItemOrParentsIdMatch(itemDetails[1]._id, RagfairConfig.dynamic.showAsSingleStackOnFlea))
+        if (isWeaponPreset || ItemHelper.doesItemOrParentsIdMatch(itemDetails[1]._id, RagfairConfig.dynamic.showAsSingleStack))
         {
             return 1;
         }
@@ -382,16 +392,13 @@ class RagfairServer
 
     static isItemInDynamicBlacklist(itemTemplateId)
     {
-        return RagfairConfig.dynamic.blacklist.includes(itemTemplateId);
+        return RagfairConfig.dynamic.blacklist.custom.includes(itemTemplateId);
     }
 
     static createOffer(userID, time, items, barterScheme, loyalLevel, price, sellInOnePiece = false)
     {
         const isTrader = RagfairServer.isTrader(userID);
         const trader = DatabaseServer.tables.traders[(isTrader) ? userID : "ragfair"].base;
-
-        // get properties
-        items = RagfairServer.getItemCondition(userID, items);
 
         const offer = {
             "_id": (isTrader) ? items[0]._id : HashUtil.generate(),
@@ -707,32 +714,29 @@ class RagfairServer
 
         for (const item of barterScheme)
         {
-            price += (RagfairServer.prices.trader[item._tpl] * item.count);
+            price += (RagfairServer.prices.static[item._tpl] * item.count);
         }
 
         return Math.round(price);
     }
 
-    static getItemPrices()
+    static generateStaticPrices()
     {
-        const items = DatabaseServer.tables.templates.items;
-        const prices = DatabaseServer.tables.templates.prices;
-
-        // trader offers
-        for (const itemID in items)
+        for (const itemID in DatabaseServer.tables.templates.items)
         {
-            RagfairServer.prices.trader[itemID] = Math.round(HandbookController.getTemplatePrice(itemID));
+            RagfairServer.prices.static[itemID] = Math.round(HandbookController.getTemplatePrice(itemID));
         }
+    }
 
-        // dynamic offers
-        const dynamic = (RagfairConfig.dynamic.liveprices) ? { ...RagfairServer.prices.trader, ...prices } : RagfairServer.prices.trader;
+    static generateDynamicPrices()
+    {
+        const dynamic = { ...RagfairServer.prices.static, ...DatabaseServer.tables.templates.prices };
 
         for (const itemID in dynamic)
         {
-            dynamic[itemID] = dynamic[itemID] || 1;
+            // ensure all dynamic offers have a value (some don't by default)
+            RagfairServer.prices.dynamic[itemID] = dynamic[itemID] || 1;
         }
-
-        RagfairServer.prices.dynamic = dynamic;
     }
 
     static getOffer(offerID)
@@ -827,11 +831,6 @@ class RagfairServer
 
     static removeOfferStack(offerID, amount)
     {
-        if (!RagfairConfig.dynamic.enabled)
-        {
-            return;
-        }
-
         // remove stack from offer
         for (const offer in RagfairServer.offers)
         {

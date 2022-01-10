@@ -2,6 +2,33 @@ require("../Lib");
 
 class PlayerController
 {
+
+    /**
+     * increases the profile skill and updates any output
+     * @param {Object} pmcData
+     * @param {Object} output
+     * @param {String} skill
+     * @param {Number} amount
+     */
+    static incrementSkillLevel(pmcData, output, skillName, amount)
+    {
+        const profileSkill = pmcData.Skills.Common.find(skill => skill.Id === skillName);
+
+        if (!amount || amount < 0)
+        {
+            Logger.error("increment skill with a negative amount");
+            return;
+        }
+
+        profileSkill.Progress += amount;
+
+        if (output)
+        {
+            const outputSkill = output.skills.Common.find(skill => skill.Id === skillName);
+            outputSkill.Progress += amount;
+        }
+    }
+
     /**
      * @param {Object} pmcData
      * @returns number

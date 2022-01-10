@@ -13,12 +13,17 @@ class GameCallbacks
 
     static gameStart(url, info, sessionID)
     {
-        return HttpResponse.nullResponse();
+        GameController.gameStart(url, info, sessionID);
+        return HttpResponse.getBody({
+            "utc_time": new Date().getTime() / 1000
+        });
     }
 
     static gameLogout(url, info, sessionID)
     {
-        return HttpResponse.nullResponse();
+        return HttpResponse.getBody({
+            "status": "ok"
+        });
     }
 
     static getGameConfig(url, info, sessionID)
@@ -39,6 +44,7 @@ class GameCallbacks
                 "Main": HttpServer.getBackendUrl(),
                 "RagFair": HttpServer.getBackendUrl(),
             },
+            "utc_time": new Date().getTime() / 1000,
             "totalInGame": 1
         });
     }

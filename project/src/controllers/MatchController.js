@@ -4,28 +4,7 @@ require("../Lib.js");
 
 class MatchController
 {
-    static servers = {};
     static locations = {};
-
-    static addServer(info)
-    {
-        for (let server in MatchController.servers)
-        {
-            if (MatchController.servers[server].id === info.id)
-            {
-                return "OK";
-            }
-        }
-
-        MatchController.servers[info.id] = {"219.240.53.246": info.ip, "6767": info.port, "EUR": info.location};
-        return "FAILED";
-    }
-
-    static removeServer(info)
-    {
-        delete MatchController.servers[info.id];
-        return "OK";
-    }
 
     static getEnabled()
     {
@@ -143,6 +122,37 @@ class MatchController
                 }
             }
         }
+    }
+
+    static endOfflineRaid(info, sessionID)
+    {
+        const pmcData = ProfileController.getPmcProfile(sessionID);
+        const extract = info.exitName;
+
+        if (!InraidConfig.carExtracts.includes(extract))
+        {
+            return;
+        }
+
+        if (!(extract in pmcData.CarExtractCounts))
+        {
+            pmcData.CarExtractCounts[extract] = 0;
+        }
+
+        pmcData.CarExtractCounts[extract] += 1;
+        const extractCount = pmcData.CarExtractCounts[extract];
+
+        const fenceID = TraderHelper.getTraderIdByName("fence");
+        let fenceStanding = Number(pmcData.TradersInfo[fenceID].standing);
+
+        // Not exact replica of Live behaviour
+        // Simplified for now, no real reason to do the whole (unconfirmed) extra 0.01 standing per day regeneration mechanic
+        const baseGain = InraidConfig.carExtractBaseStandingGain;
+        fenceStanding += Math.max(baseGain / extractCount, 0.01);
+
+        pmcData.TradersInfo[fenceID].standing = Math.min(Math.max(fenceStanding, -7), 6);
+        TraderController.lvlUp(fenceID, sessionID);
+        pmcData.TradersInfo[fenceID].loyaltyLevel = Math.max(pmcData.TradersInfo[fenceID].loyaltyLevel, 1);
     }
 }
 

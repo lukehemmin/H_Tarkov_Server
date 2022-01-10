@@ -76,7 +76,7 @@ class LocationGenerator
         const globalLootChanceModifier = DatabaseServer.tables.globals.config.GlobalLootChanceModifier * 10;
         const locationLootChanceModifier = location.base.GlobalLootChanceModifier;
         const num = RandomUtil.getInt(0, 100);
-        const spawnChance = DatabaseServer.tables.templates.items[data.Items[0]._tpl]._props.SpawnChance;
+        const spawnChance = LocationGenerator.getItemSpawnChance(data.Items[0]._tpl);
         const itemChance = Math.round(spawnChance * globalLootChanceModifier * locationLootChanceModifier);
 
         if (itemChance >= num)
@@ -87,7 +87,15 @@ class LocationGenerator
         return { "status": "error", "reason": "failedspawnchancecheck" }; // item spawn chance was lower than random number
     }
 
-    static generateContainerLoot(items)
+    static getItemSpawnChance(tplId)
+    {
+        // return DatabaseServer.tables.templates.items[tplId]._props.SpawnChance;
+        const spawnChance = DatabaseServer.tables.templates.legacyItems[tplId]._props.SpawnChance; // TODO - replace this with proper system + remove legacy item json
+
+        return spawnChance ? spawnChance : 1;
+    }
+
+    static generateContainerLoot(mapName, items)
     {
         const container = JsonUtil.clone(DatabaseServer.tables.loot.statics[items[0]._tpl]);
         const parentId = items[0]._id;

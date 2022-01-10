@@ -54,5 +54,8 @@ module.exports = {
     },
     "/push/notifier/getwebsocket/": {
         "aki": NotifierCallbacks.getNotifier
+    },
+    "/singleplayer/settings/bot/maxCap": {
+        "aki": BotCallbacks.getBotCap
     }
 };

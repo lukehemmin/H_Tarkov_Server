@@ -66,6 +66,9 @@ class TraderController
         // level up traders
         let targetLevel = 0;
 
+        // round standing to 2 decimal places to address floating point inaccuracies
+        pmcData.TradersInfo[traderID].standing = Math.round(pmcData.TradersInfo[traderID].standing * 100) / 100;
+
         for (const level in loyaltyLevels)
         {
             const loyalty = loyaltyLevels[level];
@@ -236,7 +239,17 @@ class TraderController
                     }
                 }
 
+                // Skip quest items
+                const itemDetails = ItemHelper.getItem(itemID);
+                if (itemDetails[1]._props.QuestItem)
+                {
+                    continue;
+                }
+
                 const toPush = JsonUtil.clone(assort.items[assort.items.findIndex(i => i._id === itemID)]);
+
+                toPush.upd.StackObjectsCount = 1;
+                toPush.upd.UnlimitedCount = false;
 
                 toPush._id = HashUtil.generate();
                 result.items.push(toPush);

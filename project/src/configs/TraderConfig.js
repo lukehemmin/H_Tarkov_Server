@@ -12,7 +12,6 @@ module.exports = {
         "56e294cdd2720b603a8b4575", // Mystery Ranch Terraplane backpack
 
         "5661632d4bdc2d903d8b456b", // stackable
-        "5448ecbe4bdc2d60728b4568", // info quest items
         "543be5e94bdc2df1348b4568", // keys
         "543be6674bdc2df1348b4569", // food or drink
         "5448bf274bdc2dfc2f8b456a", // portable container (secure containers)

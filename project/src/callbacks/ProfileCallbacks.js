@@ -70,7 +70,7 @@ class ProfileCallbacks
 
     static getReservedNickname(url, info, sessionID)
     {
-        return HttpResponse.getBody("SPTarkov");
+        return HttpResponse.getBody("");
     }
 
     static getProfileStatus(url, info, sessionID)

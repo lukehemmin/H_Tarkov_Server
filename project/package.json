@@ -22,8 +22,8 @@
         "test:debug": "node --trace-warnings src/ide/TestEntry.js",
         "test:release": "node --trace-warnings src/ide/ReleaseEntry.js",
         "build:types": "npx babel src --out-dir obj",
-        "build:bundle-release": "npx browserify --node obj/ide/ReleaseEntry.js > obj/bundle.js",
-        "build:bundle-debug": "npx browserify --node obj/ide/DebugEntry.js > obj/bundle.js",
+        "build:bundle-release": "npx browserify --debug --node obj/ide/ReleaseEntry.js > obj/bundle.js",
+        "build:bundle-debug": "npx browserify --debug --node obj/ide/DebugEntry.js > obj/bundle.js",
         "build:exe": "node src/ide/Compiler.js",
         "build:release": "npm run build:types && npm run build:bundle-release && npm run build:exe",
         "build:debug": "npm run build:types && npm run build:bundle-debug && npm run build:exe"
@@ -33,17 +33,21 @@
         "json-fixer": "1.6.10",
         "os-locale": "^5.0.0",
         "proper-lockfile": "^4.1.2",
-        "ws": "^7.4.6"
+        "ws": "^7.4.6",
+        "source-map-support": "^0.5.0"
     },
     "devDependencies": {
         "@babel/cli": "^7.13.16",
         "@babel/core": "7.14.2",
         "@babel/eslint-parser": "^7.14.2",
+        "@babel/plugin-transform-runtime": "^7.16.0",
         "@babel/plugin-proposal-class-properties": "^7.13.0",
         "@babel/plugin-proposal-private-methods": "^7.13.0",
         "@babel/preset-env": "^7.14.2",
+        "babel-plugin-source-map-support": "^2.1.0",
         "browserify": "^17.0.0",
-        "bufferutil": "4.0.3",
+        "bufferutil": "^4.0.3",
+        "core-js": "^3.20.0",
         "eslint": "^7.26.0",
         "nexe": "^4.0.0-beta.18",
         "rcedit": "^3.0.0",
@@ -55,10 +59,10 @@
                 "@babel/env",
                 {
                     "targets": {
-                        "node": "current"
+                        "node": "14.15.3"
                     },
                     "useBuiltIns": "usage",
-                    "corejs": "3.10.0"
+                    "corejs": "3.20.0"
                 }
             ]
         ],
@@ -80,22 +84,20 @@
                 {
                     "loose": true
                 }
-            ]
+            ],
+            "@babel/plugin-transform-runtime",
+            "source-map-support"
         ],
         "ignore": [
             "*/node_modules",
             "*/obj",
             "*/user"
-        ]
+        ],
+        "sourceMaps": "inline"
     },
     "eslintConfig": {
         "parser": "@babel/eslint-parser",
         "extends": "eslint:recommended",
-        "parserOptions": {
-            "ecmaVersion": 12,
-            "sourceType": "module",
-            "requireConfigFile": false
-        },
         "rules": {
             "indent": [
                 "error",

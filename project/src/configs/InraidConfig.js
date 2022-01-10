@@ -12,5 +12,7 @@ module.exports = {
     "save": {
         "loot": true,
         "durability": true
-    }
+    },
+    "carExtracts": ["Dorms V-Ex", "PP Exfil", " V-Ex_light", "South V-Ex"],
+    "carExtractBaseStandingGain": 0.25
 };

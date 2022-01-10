@@ -23,6 +23,11 @@ class BotCallbacks
     {
         return HttpResponse.getBody(BotController.generate(info));
     }
+
+    static getBotCap()
+    {
+        return HttpResponse.noBody(BotController.getBotCap());
+    }
 }
 
 module.exports = BotCallbacks;

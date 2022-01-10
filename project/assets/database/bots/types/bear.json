@@ -67,36 +67,38 @@
             "min": 36.6,
             "max": 40
         },
-        "BodyParts": {
-            "Head": {
-                "min": 35,
-                "max": 35
-            },
-            "Chest": {
-                "min": 150,
-                "max": 150
-            },
-            "Stomach": {
-                "min": 120,
-                "max": 120
-            },
-            "LeftArm": {
-                "min": 100,
-                "max": 100
-            },
-            "RightArm": {
-                "min": 100,
-                "max": 100
-            },
-            "LeftLeg": {
-                "min": 110,
-                "max": 110
-            },
-            "RightLeg": {
-                "min": 110,
-                "max": 110
-            }
-        }
+        "BodyParts": [
+			{
+				"Head": {
+					"min": 35,
+					"max": 35
+				},
+				"Chest": {
+					"min": 150,
+					"max": 150
+				},
+				"Stomach": {
+					"min": 120,
+					"max": 120
+				},
+				"LeftArm": {
+					"min": 100,
+					"max": 100
+				},
+				"RightArm": {
+					"min": 100,
+					"max": 100
+				},
+				"LeftLeg": {
+					"min": 110,
+					"max": 110
+				},
+				"RightLeg": {
+					"min": 110,
+					"max": 110
+				}
+			}
+		]
     },
     "skills": {
         "Common": {
@@ -3877,9 +3879,6 @@
                 ],
                 "mod_handguard": [
                     "6123649463849f3d843da7c4"
-                ],
-                "patron_in_weapon": [
-                    "560d5e524bdc2d25448b4571"
                 ]
             },
             "60dc519adf4c47305f6d410d": {

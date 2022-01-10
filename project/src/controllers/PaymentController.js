@@ -172,7 +172,7 @@ class PaymentController
         TraderController.lvlUp(body.tid, sessionID);
         Object.assign(output.profileChanges[sessionID].traderRelations, { [body.tid]: pmcData.TradersInfo[body.tid] });
 
-        Logger.success("Items taken. Status OK.");
+        Logger.debug("Items taken. Status OK.");
         return output;
     }
 
