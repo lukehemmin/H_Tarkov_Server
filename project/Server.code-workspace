@@ -1,0 +1,69 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"launch": {
+		"version": "0.2.0",
+		"configurations": [
+			{
+				"type": "node",
+				"request": "launch",
+				"name": "Test (debug)",
+				"runtimeExecutable": "npm",
+				"runtimeArgs": [
+					"run-script",
+					"test:debug"
+				],
+				"cwd": "${workspaceFolder}",
+				"outFiles": [
+					"${workspaceFolder}/out/**/*.js"
+				],
+				"skipFiles": [
+					"**/node_modules/**"
+				]
+			},
+			{
+				"type": "node",
+				"request": "launch",
+				"name": "Test (release)",
+				"runtimeExecutable": "npm",
+				"runtimeArgs": [
+					"run-script",
+					"test:release"
+				],
+				"cwd": "${workspaceFolder}",
+				"outFiles": [
+					"${workspaceFolder}/out/**/*.js"
+				],
+				"skipFiles": [
+					"**/node_modules/**"
+				]
+			}
+		],
+	},
+	"tasks": {
+		"version": "2.0.0",
+		"tasks": [
+			{
+				"label": "build",
+				"type": "npm",
+				"script": "build:release",
+				"group": {
+					"kind": "build",
+					"isDefault": true
+				}
+			}
+		]
+	},
+	"extensions": {
+		"recommendations": [
+			"mhutchie.git-graph"
+		]
+	},
+	"settings": {
+		"window.title": "SPT-AKI Server",
+		"git-graph.commitDetailsView.location": "Docked to Bottom"
+	}
+}
