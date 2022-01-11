@@ -350,7 +350,7 @@
     "DistToSleep": 300,
     "DistToActivate": 265,
     "DistToPersueAxemanCoef": 1.1,
-    "KhorovodChance": 15
+    "KhorovodChance": 0
   },
   "exits": [
     {
@@ -488,17 +488,6 @@
       "BossEscortType": "followerKojaniy",
       "BossEscortDifficult": "normal",
       "BossEscortAmount": "2",
-      "Time": -1
-    },
-    {
-      "BossName": "gifter",
-      "BossChance": 40,
-      "BossZone": "ZoneWoodCutter,ZoneHouse,ZoneRoad,ZoneMiniHouse",
-      "BossPlayer": false,
-      "BossDifficult": "normal",
-      "BossEscortType": "gifter",
-      "BossEscortDifficult": "normal",
-      "BossEscortAmount": "0",
       "Time": -1
     }
   ],

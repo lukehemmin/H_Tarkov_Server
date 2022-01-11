@@ -13791,7 +13791,7 @@
                         "parentId": "",
                         "recoil": {
                             "compareMethod": "<=",
-                            "value": 950
+                            "value": 850
                         },
                         "target": ["54491c4f4bdc2db1078b4568"],
                         "value": "1",
@@ -13955,7 +13955,7 @@
                         },
                         "ergonomics": {
                             "compareMethod": ">=",
-                            "value": 56
+                            "value": 58
                         },
                         "hasItemFromCategory": [],
                         "height": {
@@ -13975,7 +13975,7 @@
                         "parentId": "",
                         "recoil": {
                             "compareMethod": "<=",
-                            "value": 600
+                            "value": 550
                         },
                         "target": ["57dc2fa62459775949412633"],
                         "value": "1",
@@ -14200,7 +14200,7 @@
                         "parentId": "",
                         "recoil": {
                             "compareMethod": "<=",
-                            "value": 250
+                            "value": 200
                         },
                         "target": ["5926bb2186f7744b1c6c6e60"],
                         "value": "1",
@@ -14398,7 +14398,7 @@
                         },
                         "ergonomics": {
                             "compareMethod": ">=",
-                            "value": 35
+                            "value": 40
                         },
                         "hasItemFromCategory": ["55818b164bdc2ddc698b456c"],
                         "height": {
@@ -14577,7 +14577,7 @@
                         },
                         "ergonomics": {
                             "compareMethod": ">=",
-                            "value": 21
+                            "value": 26
                         },
                         "hasItemFromCategory": ["550aa4cd4bdc2dd8348b456c"],
                         "height": {
@@ -14597,7 +14597,7 @@
                         "parentId": "",
                         "recoil": {
                             "compareMethod": "<=",
-                            "value": 350
+                            "value": 300
                         },
                         "target": ["5a367e5dc4a282000e49738f"],
                         "value": "1",
@@ -16981,7 +16981,7 @@
                         "parentId": "",
                         "recoil": {
                             "compareMethod": "<=",
-                            "value": 550
+                            "value": 500
                         },
                         "target": ["5a7828548dc32e5a9c28b516"],
                         "value": "1",
@@ -17152,7 +17152,7 @@
                         },
                         "ergonomics": {
                             "compareMethod": ">=",
-                            "value": 42
+                            "value": 40
                         },
                         "hasItemFromCategory": ["550aa4cd4bdc2dd8348b456c"],
                         "height": {
@@ -17323,7 +17323,7 @@
                         "parentId": "",
                         "recoil": {
                             "compareMethod": "<=",
-                            "value": 500
+                            "value": 450
                         },
                         "target": ["5ab8e9fcd8ce870019439434"],
                         "value": "1",
@@ -17760,7 +17760,7 @@
                         },
                         "ergonomics": {
                             "compareMethod": ">=",
-                            "value": 34
+                            "value": 33
                         },
                         "hasItemFromCategory": [],
                         "height": {
@@ -17780,7 +17780,7 @@
                         "parentId": "",
                         "recoil": {
                             "compareMethod": "<=",
-                            "value": 250
+                            "value": 220
                         },
                         "target": ["57c44b372459772d2b39b8ce"],
                         "value": "1",
@@ -20654,7 +20654,7 @@
                         },
                         "ergonomics": {
                             "compareMethod": ">=",
-                            "value": 50
+                            "value": 42
                         },
                         "hasItemFromCategory": [],
                         "height": {
@@ -20674,7 +20674,7 @@
                         "parentId": "",
                         "recoil": {
                             "compareMethod": "<=",
-                            "value": 500
+                            "value": 465
                         },
                         "target": ["5ac66d015acfc400180ae6e4"],
                         "value": "1",
@@ -21104,7 +21104,7 @@
                         "parentId": "",
                         "recoil": {
                             "compareMethod": "<=",
-                            "value": 350
+                            "value": 340
                         },
                         "target": ["5a0ec13bfcdbcb00165aa685"],
                         "value": "1",
@@ -21453,7 +21453,7 @@
                         "parentId": "",
                         "recoil": {
                             "compareMethod": "<=",
-                            "value": 230
+                            "value": 250
                         },
                         "target": ["5447a9cd4bdc2dbd208b4567"],
                         "value": "1",

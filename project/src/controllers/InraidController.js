@@ -99,38 +99,42 @@ class InraidController
             ProfileController.setScavProfile(sessionID, scavData);
 
             // Scav karma
-            // Client deals with negative karma
-            const fenceID = "579dc571d53a0658a154fbec";
-            let fenceStanding = Number(offraidData.profile.TradersInfo[fenceID].standing);
+            const fenceID = TraderHelper.getTraderIdByName("fence");
+            let fenceStanding = Number(pmcData.TradersInfo[fenceID].standing);
 
             // Add positive karma for PMC kills
             const victims = offraidData.profile.Stats.Victims;
 
-            for (const victimNumber in victims)
+            for (const victim of victims)
             {
-                const victim = victims[victimNumber];
-
-                if (victim.Side === "Usec" || victim.Side === "Bear")
+                let standingForKill = null;
+                if (victim.Side === "Savage")
                 {
-                    fenceStanding += DatabaseServer.tables.bots.types[victim.Side.toLowerCase()].standingForKill;
+                    standingForKill = DatabaseServer.tables.bots.types[victim.Role].experience.standingForKill;
+                }
+                else
+                {
+                    const victimRole = victim.Side === "Usec" ? BotConfig.pmc.usecType : BotConfig.pmc.bearType;
+                    // pmc (bosstest, test) are the only roles where standingForKill is not in the experience object
+                    // we might wanna fix that for consistency
+                    standingForKill = DatabaseServer.tables.bots.types[victimRole].standingForKill;
+                }
+
+                if (standingForKill)
+                {
+                    fenceStanding += standingForKill;
+                }
+                else
+                {
+                    Logger.warning(`standing for kill not found for ${victim.Side}:${victim.Role}`);
                 }
             }
 
-            //TODO Add car extract karma
-            /*
-            MatchCallbacks.endOfflineRaid should contain the of the endraid extraction in that version
-            ({"crc":0,"exitStatus":"Survived","exitName":"Gate 3","raidSeconds":81.428})
-            So actually MatchCallbacks.endOfflineRaid.exitName should get the name of the exist
-            List of the car extract in InraidConfig.carExtractlist
-
-            +0.25 first time, then it decrease (https://escapefromtarkov.fandom.com/wiki/Fence)
-            Whoever wanna do these maths is free to do it!
-            My environment isn't setup to work on it yet so :shrug:
-
-            Have fun! :grin:
-
-            */
-
+            // successful extract with scav adds 0.01 standing
+            if (offraidData.exit === "survived")
+            {
+                fenceStanding += 0.01;
+            }
 
             pmcData.TradersInfo[fenceID].standing = Math.min(Math.max(fenceStanding, -7), 6);
             TraderController.lvlUp(fenceID, sessionID);

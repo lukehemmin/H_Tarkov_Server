@@ -413,7 +413,7 @@
     "DistToActivate": 260,
     "MagnetPower": 40,
     "DistToPersueAxemanCoef": 1.1,
-    "KhorovodChance": 15
+    "KhorovodChance": 0
   },
   "exits": [
     {
@@ -527,17 +527,6 @@
       "BossEscortType": "sectantWarrior",
       "BossEscortDifficult": "normal",
       "BossEscortAmount": "4",
-      "Time": -1
-    },
-    {
-      "BossName": "gifter",
-      "BossChance": 40,
-      "BossZone": "ZoneSanatorium1,ZoneSanatorium2,ZoneGreenHouses,ZoneMeteoStation,ZonePowerStation",
-      "BossPlayer": false,
-      "BossDifficult": "normal",
-      "BossEscortType": "gifter",
-      "BossEscortDifficult": "normal",
-      "BossEscortAmount": "0",
       "Time": -1
     }
   ],

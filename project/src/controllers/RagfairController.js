@@ -799,32 +799,27 @@ class RagfairController
             worth *= item.upd.Dogtag.Level;
         }
 
-        if ("Key" in item.upd)
+        if ("Key" in item.upd && itemTemplate._props.MaximumNumberOfUsage > 0)
         {
             worth = worth / itemTemplate._props.MaximumNumberOfUsage * (itemTemplate._props.MaximumNumberOfUsage - item.upd.Key.NumberOfUsages);
         }
 
-        if ("Resource" in item.upd)
+        if ("Resource" in item.upd && itemTemplate._props.MaxResource > 0)
         {
             worth = worth * 0.1 + worth * 0.9 / itemTemplate._props.MaxResource * item.upd.Resource.Value;
         }
 
-        if ("SideEffect" in item.upd)
+        if ("SideEffect" in item.upd && itemTemplate._props.MaxResource > 0)
         {
             worth = worth * 0.1 + worth * 0.9 / itemTemplate._props.MaxResource * item.upd.SideEffect.Value;
         }
-        else if (itemTemplate._props.MaxResource > 0 && itemTemplate._props.MaxDurability > 0)
-        {
-            // Handling edge-case where Cultist knife does not have "SideEffect" under "upd" while the knife hasn't been used
-            worth = worth * 0.1 + worth * 0.9 / itemTemplate._props.MaxResource * itemTemplate._props.MaxResource;
-        }
 
-        if ("MedKit" in item.upd)
+        if ("MedKit" in item.upd && itemTemplate._props.MaxHpResource > 0)
         {
             worth = worth / itemTemplate._props.MaxHpResource * item.upd.MedKit.HpResource;
         }
 
-        if ("FoodDrink" in item.upd)
+        if ("FoodDrink" in item.upd && itemTemplate._props.MaxResource > 0)
         {
             worth = worth / itemTemplate._props.MaxResource * item.upd.FoodDrink.HpPercent;
         }

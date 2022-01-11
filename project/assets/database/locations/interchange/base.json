@@ -374,7 +374,7 @@
     "MarksmanAccuratyCoef": 1,
     "VisibleDistance": 1,
     "DistToPersueAxemanCoef": 1,
-    "KhorovodChance": 15
+    "KhorovodChance": 0
   },
   "exits": [
     {
@@ -472,22 +472,11 @@
   "BossLocationSpawn": [
     {
       "BossName": "bossKilla",
-      "BossChance": 21,
+      "BossChance": 25,
       "BossZone": "ZoneCenterBot,ZoneCenter,ZoneOLI,ZoneIDEA,ZoneGoshan,ZoneIDEAPark,ZoneOLIPark",
       "BossPlayer": false,
       "BossDifficult": "normal",
       "BossEscortType": "followerBully",
-      "BossEscortDifficult": "normal",
-      "BossEscortAmount": "0",
-      "Time": -1
-    },
-    {
-      "BossName": "gifter",
-      "BossChance": 40,
-      "BossZone": "ZoneCenterBot,ZoneCenter,ZoneOLI,ZoneIDEA,ZoneGoshan,ZoneIDEAPark,ZoneOLIPark",
-      "BossPlayer": false,
-      "BossDifficult": "normal",
-      "BossEscortType": "gifter",
       "BossEscortDifficult": "normal",
       "BossEscortAmount": "0",
       "Time": -1

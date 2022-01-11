@@ -195,7 +195,7 @@
   "MaxBotPerZone": 8,
   "OpenZones": "Zone_Containers,Zone_Rocks,Zone_Chalet,Zone_Village,Zone_Bridge,Zone_OldHouse,Zone_LongRoad,Zone_DestroyedHouse,Zone_SniperPeak",
   "OcculsionCullingEnabled": false,
-  "GlobalLootChanceModifier": 0.27,
+  "GlobalLootChanceModifier": 0.23,
   "OldSpawn": false,
   "NewSpawn": true,
   "BotMax": 15,
@@ -232,7 +232,7 @@
     "DistToPersueAxemanCoef": 0.7,
     "DistToSleep": 350,
     "DistToActivate": 330,
-    "KhorovodChance": 15
+    "KhorovodChance": 0
   },
   "exits": [
     {
@@ -5871,19 +5871,6 @@
       "BossEscortType": "exUsec",
       "BossEscortDifficult": "normal",
       "BossEscortAmount": "1",
-      "Time": -1,
-      "TriggerId": "",
-      "TriggerName": ""
-    },
-    {
-      "BossName": "gifter",
-      "BossChance": 40,
-      "BossZone": "Zone_Containers,Zone_Rocks,Zone_Chalet,Zone_Village,Zone_Bridge,Zone_Chalet,Zone_Chalet",
-      "BossPlayer": false,
-      "BossDifficult": "normal",
-      "BossEscortType": "gifter",
-      "BossEscortDifficult": "normal",
-      "BossEscortAmount": "0",
       "Time": -1,
       "TriggerId": "",
       "TriggerName": ""
