@@ -722,7 +722,11 @@ class QuestDailyController
 
         // first filter for type and baseclass to avoid lookup in handbook for non-available items
         const rewardableItems = ItemHelper.getRewardableItems();
-        let itemSelection = rewardableItems.filter(x => ItemHelper.getItemPrice(x[0]) < roublesBudget);
+        // blacklist
+        let itemSelection = rewardableItems.filter(x =>     !ItemHelper.isOfBaseclass(x[0], ItemHelper.BASECLASS.DogTagUsec)
+                                                        &&  !ItemHelper.isOfBaseclass(x[0], ItemHelper.BASECLASS.DogTagBear)
+        );
+        itemSelection = itemSelection.filter(x => ItemHelper.getItemPrice(x[0]) < roublesBudget);
 
         const rewards = {
             "Started": [],

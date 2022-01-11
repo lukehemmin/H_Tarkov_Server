@@ -53,7 +53,9 @@ class ItemHelper
             "Inventory": "55d720f24bdc2d88028b456d",
             "StationaryContainer": "567583764bdc2d98058b456e",
             "Pockets": "557596e64bdc2dc2118b4571",
-            "Armband": "5b3f15d486f77432d0509248"
+            "Armband": "5b3f15d486f77432d0509248",
+            "DogTagUsec": "59f32c3b86f77472a31742f0",
+            "DogTagBear": "59f32bb586f774757e1e8442"
         };
     }
 
@@ -75,7 +77,7 @@ class ItemHelper
         // check for specific baseclasses which don't make sense as reward item
         // also check if the price is greater than 0; there are some items whose price can not be found
         // those are not in the game yet (e.g. AGS grenade launcher)
-        return Object.entries(DatabaseServer.tables.templates.items).filter(
+        let rewardableItems = Object.entries(DatabaseServer.tables.templates.items).filter(
             ([ key, val ]) =>       !val._props.QuestItem
                                 &&  val._type === "Item"
                                 &&  !ItemHelper.isOfBaseclass(val._id, ItemHelper.BASECLASS.Key)
@@ -89,6 +91,13 @@ class ItemHelper
                                 &&  !ItemHelper.isOfBaseclass(val._id, ItemHelper.BASECLASS.Armband)
                                 &&  ItemHelper.getItemPrice(val._id) > 0
         );
+
+        const itemIdsBlacklisted = DatabaseServer.tables.templates.dailyQuests.rewards.itemsBlacklist;
+        rewardableItems = rewardableItems.filter(x =>
+        {
+            return itemIdsBlacklisted.every(v => !ItemHelper.isOfBaseclass(x[0], v));
+        });
+        return rewardableItems;
     }
 
     /**

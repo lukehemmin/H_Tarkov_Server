@@ -375,9 +375,9 @@ class HideoutController
         {
             while (rarityItemCounter[rarityType] > 0)
             {
-                const random = RandomUtil.getIntEx(Object.keys(DatabaseServer.tables.templates.items).length);
-                const randomKey = Object.keys(DatabaseServer.tables.templates.items)[random];
-                const tempItem = DatabaseServer.tables.templates.items[randomKey];
+                const random = RandomUtil.getIntEx(Object.keys(DatabaseServer.tables.templates.legacyItems).length);
+                const randomKey = Object.keys(DatabaseServer.tables.templates.legacyItems)[random];
+                const tempItem = DatabaseServer.tables.templates.legacyItems[randomKey];
 
                 if (tempItem._props && tempItem._props.Rarity === rarityType)
                 {
@@ -881,7 +881,7 @@ class HideoutController
                     }
                     else
                     {
-                        pointsConsumed = (waterFilterArea.slots[i].item[0].upd.Resource.UnitsConsumed || 0) + fuelDrainRate;
+                        pointsConsumed = (waterFilterArea.slots[i].item[0].upd.Resource.UnitsConsumed || 0) + filterDrainRate;
                         resourceValue -= filterDrainRate;
                     }
                     resourceValue = Math.round(resourceValue * 10000) / 10000;
@@ -948,7 +948,7 @@ class HideoutController
                 }
                 else
                 {
-                    pointsConsumed = (airFilterArea.slots[i].item[0].upd.Resource.UnitsConsumed || 0) + fuelDrainRate;
+                    pointsConsumed = (airFilterArea.slots[i].item[0].upd.Resource.UnitsConsumed || 0) + filterDrainRate;
                     resourceValue -= filterDrainRate;
                 }
                 resourceValue = Math.round(resourceValue * 10000) / 10000;

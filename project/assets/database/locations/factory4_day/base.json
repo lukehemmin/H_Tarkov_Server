@@ -2548,17 +2548,6 @@
 			"BossEscortDifficult": "normal",
 			"BossEscortAmount": "0",
 			"Time": -1
-		},
-		{
-			"BossName": "gifter",
-			"BossChance": 10,
-			"BossZone": "BotZone",
-			"BossPlayer": false,
-			"BossDifficult": "normal",
-			"BossEscortType": "gifter",
-			"BossEscortDifficult": "normal",
-			"BossEscortAmount": "0",
-			"Time": -1
 		}
 	],
 	"Id": "factory4_day",

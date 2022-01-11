@@ -395,7 +395,7 @@
     "DistToSleep": 300,
     "MagnetPower": 44,
     "DistToPersueAxemanCoef": 1,
-    "KhorovodChance": 15
+    "KhorovodChance": 0
   },
   "exits": [
     {
@@ -547,17 +547,6 @@
       "BossEscortType": "followerBully",
       "BossEscortDifficult": "normal",
       "BossEscortAmount": "4",
-      "Time": -1
-    },
-    {
-      "BossName": "gifter",
-      "BossChance": 40,
-      "BossZone": "ZoneDormitory,ZoneGasStation,ZoneBrige,ZoneCrossRoad,ZoneOldAZS",
-      "BossPlayer": false,
-      "BossDifficult": "normal",
-      "BossEscortType": "gifter",
-      "BossEscortDifficult": "normal",
-      "BossEscortAmount": "0",
       "Time": -1
     }
   ],

@@ -160,6 +160,11 @@
 			"templateId": "616041eb031af660100c9967"
 		}
 	},
+	"rewards": {
+		"itemsBlacklist": [
+			"5cffa483d7ad1a049e54ef1c"
+		]
+	},
 	"data": {
 		"Completion": {
 			"itemsBlacklist": [
